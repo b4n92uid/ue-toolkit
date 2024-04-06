@@ -20,12 +20,12 @@ dependencies:
   glob:
     specifier: ^10.3.12
     version: 10.3.12
-  ini:
-    specifier: ^4.1.2
-    version: 4.1.2
   semver:
     specifier: ^7.6.0
     version: 7.6.0
+  winattr:
+    specifier: ^3.0.0
+    version: 3.0.0
 
 devDependencies:
   '@oclif/prettier-config':
@@ -37,15 +37,15 @@ devDependencies:
   '@types/chai':
     specifier: ^4
     version: 4.3.14
-  '@types/ini':
-    specifier: ^4.1.0
-    version: 4.1.0
   '@types/mocha':
     specifier: ^10
     version: 10.0.6
   '@types/node':
     specifier: ^18
     version: 18.19.30
+  '@types/winattr':
+    specifier: ^3.0.0
+    version: 3.0.0
   chai:
     specifier: ^4
     version: 4.4.1
@@ -1626,10 +1626,6 @@ packages:
     resolution: {integrity: sha512-1m0bIFVc7eJWyve9S0RnuRgcQqF/Xd5QsUZAZeQFr1Q3/p9JWoQQEqmVy+DPTNpGXwhgIetAoYF8JSc33q29QA==}
     dev: true
 
-  /@types/ini@4.1.0:
-    resolution: {integrity: sha512-mTehMtc+xtnWBBvqizcqYCktKDBH2WChvx1GU3Sfe4PysFDXiNe+1YwtpVX1MDtCa4NQrSPw2+3HmvXHY3gt1w==}
-    dev: true
-
   /@types/json-schema@7.0.15:
     resolution: {integrity: sha512-5+fP8P8MFNC+AyZCDxrB2pkZFPGzqQWUzpSeuuVLvm8VMcorNYavBqoFcxK8bQz4Qsbn4oUEEem4wDLfcysGHA==}
     dev: true
@@ -1679,6 +1675,10 @@ packages:
 
   /@types/sinonjs__fake-timers@8.1.5:
     resolution: {integrity: sha512-mQkU2jY8jJEF7YHjHvsQO8+3ughTL1mcnn96igfhONmR+fUPSKIkefQYpSe8bsly2Ep7oQbn/6VG5/9/0qcArQ==}
+    dev: true
+
+  /@types/winattr@3.0.0:
+    resolution: {integrity: sha512-o22TjpsBqOpaMhWWx9v5acTsWpLfRwJpyQfca14nwGz/nAgvQZ8HNsZQrtC4mWlv03iw0RfupmLYmKhbdydIJw==}
     dev: true
 
   /@types/wrap-ansi@3.0.0:
@@ -3119,6 +3119,11 @@ packages:
     dev: true
     optional: true
 
+  /fswin@3.23.311:
+    resolution: {integrity: sha512-MKiaXljyEA7D9AXP1X0bCsgn1b1PEIo0P9pHKsxz6BLXZFIpfY1jYs8biRaVWlDEFkK10E3jD99mwpUZhVVCkQ==}
+    engines: {node: '>= 8.0'}
+    dev: false
+
   /function-bind@1.1.2:
     resolution: {integrity: sha512-7XHNxH7qX9xG5mIwxkhumTox/MIRNcOgDrxWsMt2pAr23WHp6MrRlN7FBSFpCpr+oVO0F744iUgR82nJMfG2SA==}
 
@@ -3430,11 +3435,6 @@ packages:
 
   /inherits@2.0.4:
     resolution: {integrity: sha512-k/vGaX4/Yla3WzyMCvTQOXYeIHvqOKtnqBduzTHpzpQZzAskKMhZ2K+EnBiSM9zGSoIFeMpXKxa4dYeZIQqewQ==}
-
-  /ini@4.1.2:
-    resolution: {integrity: sha512-AMB1mvwR1pyBFY/nSevUX6y8nJWS63/SzUKD3JyQn97s4xgIdgQPT75IRouIiBAN4yLQBUShNYVW0+UG25daCw==}
-    engines: {node: ^14.17.0 || ^16.13.0 || >=18.0.0}
-    dev: false
 
   /internal-slot@1.0.7:
     resolution: {integrity: sha512-NGnrKwXzSms2qUUih/ILZ5JBqNTSa1+ZmP6flaIp6KmSElgE9qdndzS3cqjrDovwFdmwsGsLdeFgB6suw+1e9g==}
@@ -5046,6 +5046,13 @@ packages:
     engines: {node: '>=8'}
     dependencies:
       string-width: 4.2.3
+
+  /winattr@3.0.0:
+    resolution: {integrity: sha512-dt33rYsTYcGbB+I1ubB6ZLODibRSCW//TgY/SuajLllR9kHnHnbUMqnXIe0osYsXUdRLGs770zb3t9z/ScGUpw==}
+    engines: {node: '>= 8'}
+    dependencies:
+      fswin: 3.23.311
+    dev: false
 
   /wordwrap@1.0.0:
     resolution: {integrity: sha512-gvVzJFlPycKc5dZN4yPkP8w7Dc37BtP1yczEneOb4uq34pXZcvrtRTmWV8W+Ume+XCxKgbjM+nevkyFPMybd4Q==}

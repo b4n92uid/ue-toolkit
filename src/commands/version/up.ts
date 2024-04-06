@@ -4,6 +4,7 @@ import {glob} from 'glob'
 import {readFile, writeFile} from 'node:fs/promises'
 import process from 'node:process'
 import {type ReleaseType, inc as incSemver} from 'semver'
+import * as WinAttr from 'winattr'
 
 export default class Hello extends Command {
   static args = {
@@ -54,6 +55,8 @@ export default class Hello extends Command {
       this.error('DefaultGame.ini not found!')
     }
 
+    WinAttr.setSync(defaultEnginePath, {readonly: false})
+
     const parser = new ConfigIniParser()
 
     parser.parse(await readFile(defaultEnginePath, {encoding: 'utf8'}))
@@ -90,6 +93,8 @@ export default class Hello extends Command {
     if (!defaultGamePath) {
       this.error('DefaultGame.ini not found!')
     }
+
+    WinAttr.setSync(defaultGamePath, {readonly: false})
 
     const parser = new ConfigIniParser()
     parser.parse(await readFile(defaultGamePath, {encoding: 'utf8'}))
