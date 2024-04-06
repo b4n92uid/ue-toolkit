@@ -1,12 +1,15 @@
 {
   "author": "Beldjouhri Abdelghani @b4n92uid",
   "bin": {
-    "uet": "./bin/run.js"
+    "ue": "./bin/run.js"
   },
   "dependencies": {
     "@oclif/core": "^3",
     "@oclif/plugin-help": "^5",
-    "@oclif/plugin-plugins": "^4"
+    "@oclif/plugin-plugins": "^4",
+    "config-ini-parser": "^1.6.1",
+    "glob": "^10.3.12",
+    "semver": "^7.6.0"
   },
   "description": "UnrealEngine Toolkit",
   "devDependencies": {
@@ -39,8 +42,8 @@
   "main": "",
   "name": "ue-toolkit",
   "oclif": {
-    "bin": "uet",
-    "dirname": "uet",
+    "bin": "ue",
+    "dirname": "ue",
     "commands": "./dist/commands",
     "plugins": [
       "@oclif/plugin-help",

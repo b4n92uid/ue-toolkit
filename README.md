@@ -18,13 +18,13 @@ oclif example Hello World CLI
 <!-- usage -->
 ```sh-session
 $ npm install -g ue-toolkit
-$ uet COMMAND
+$ ue COMMAND
 running command...
-$ uet (--version)
-ue-toolkit/0.0.0 win32-x64 node-v20.9.0
-$ uet --help [COMMAND]
+$ ue (--version)
+ue-toolkit/0.0.0 win32-x64 node-v21.6.2
+$ ue --help [COMMAND]
 USAGE
-  $ uet COMMAND
+  $ ue COMMAND
 ...
 ```
 <!-- usagestop -->
@@ -42,89 +42,46 @@ USAGE
 <!-- usagestop -->
 # Commands
 <!-- commands -->
-* [`uet hello PERSON`](#uet-hello-person)
-* [`uet hello world`](#uet-hello-world)
-* [`uet help [COMMANDS]`](#uet-help-commands)
-* [`uet plugins`](#uet-plugins)
-* [`uet plugins:install PLUGIN...`](#uet-pluginsinstall-plugin)
-* [`uet plugins:inspect PLUGIN...`](#uet-pluginsinspect-plugin)
-* [`uet plugins:install PLUGIN...`](#uet-pluginsinstall-plugin-1)
-* [`uet plugins:link PLUGIN`](#uet-pluginslink-plugin)
-* [`uet plugins:uninstall PLUGIN...`](#uet-pluginsuninstall-plugin)
-* [`uet plugins reset`](#uet-plugins-reset)
-* [`uet plugins:uninstall PLUGIN...`](#uet-pluginsuninstall-plugin-1)
-* [`uet plugins:uninstall PLUGIN...`](#uet-pluginsuninstall-plugin-2)
-* [`uet plugins update`](#uet-plugins-update)
+* [`ue help [COMMANDS]`](#ue-help-commands)
+* [`ue plugins`](#ue-plugins)
+* [`ue plugins:install PLUGIN...`](#ue-pluginsinstall-plugin)
+* [`ue plugins:inspect PLUGIN...`](#ue-pluginsinspect-plugin)
+* [`ue plugins:install PLUGIN...`](#ue-pluginsinstall-plugin-1)
+* [`ue plugins:link PLUGIN`](#ue-pluginslink-plugin)
+* [`ue plugins:uninstall PLUGIN...`](#ue-pluginsuninstall-plugin)
+* [`ue plugins reset`](#ue-plugins-reset)
+* [`ue plugins:uninstall PLUGIN...`](#ue-pluginsuninstall-plugin-1)
+* [`ue plugins:uninstall PLUGIN...`](#ue-pluginsuninstall-plugin-2)
+* [`ue plugins update`](#ue-plugins-update)
+* [`ue version up TYPE`](#ue-version-up-type)
 
-## `uet hello PERSON`
+## `ue help [COMMANDS]`
 
-Say hello
+Display help for ue.
 
 ```
 USAGE
-  $ uet hello PERSON -f <value>
+  $ ue help [COMMANDS...] [-n]
 
 ARGUMENTS
-  PERSON  Person to say hello to
-
-FLAGS
-  -f, --from=<value>  (required) Who is saying hello
-
-DESCRIPTION
-  Say hello
-
-EXAMPLES
-  $ oex hello friend --from oclif
-  hello friend from oclif! (./src/commands/hello/index.ts)
-```
-
-_See code: [dist/commands/hello/index.ts](https://github.com/b4n92uid/ue-toolkit/blob/v0.0.0/dist/commands/hello/index.ts)_
-
-## `uet hello world`
-
-Say hello world
-
-```
-USAGE
-  $ uet hello world
-
-DESCRIPTION
-  Say hello world
-
-EXAMPLES
-  $ uet hello world
-  hello world! (./src/commands/hello/world.ts)
-```
-
-_See code: [dist/commands/hello/world.ts](https://github.com/b4n92uid/ue-toolkit/blob/v0.0.0/dist/commands/hello/world.ts)_
-
-## `uet help [COMMANDS]`
-
-Display help for uet.
-
-```
-USAGE
-  $ uet help [COMMANDS] [-n]
-
-ARGUMENTS
-  COMMANDS  Command to show help for.
+  COMMANDS...  Command to show help for.
 
 FLAGS
   -n, --nested-commands  Include all nested commands in the output.
 
 DESCRIPTION
-  Display help for uet.
+  Display help for ue.
 ```
 
-_See code: [@oclif/plugin-help](https://github.com/oclif/plugin-help/blob/v5.2.20/lib/commands/help.ts)_
+_See code: [@oclif/plugin-help](https://github.com/oclif/plugin-help/blob/v5.2.20/src/commands/help.ts)_
 
-## `uet plugins`
+## `ue plugins`
 
 List installed plugins.
 
 ```
 USAGE
-  $ uet plugins [--json] [--core]
+  $ ue plugins [--json] [--core]
 
 FLAGS
   --core  Show core plugins.
@@ -136,21 +93,21 @@ DESCRIPTION
   List installed plugins.
 
 EXAMPLES
-  $ uet plugins
+  $ ue plugins
 ```
 
-_See code: [@oclif/plugin-plugins](https://github.com/oclif/plugin-plugins/blob/v4.1.10/lib/commands/plugins/index.ts)_
+_See code: [@oclif/plugin-plugins](https://github.com/oclif/plugin-plugins/blob/v4.3.10/src/commands/plugins/index.ts)_
 
-## `uet plugins:install PLUGIN...`
+## `ue plugins:install PLUGIN...`
 
 Installs a plugin into the CLI.
 
 ```
 USAGE
-  $ uet plugins add plugins:install PLUGIN...
+  $ ue plugins add plugins:install PLUGIN...
 
 ARGUMENTS
-  PLUGIN  Plugin to install.
+  PLUGIN...  Plugin to install.
 
 FLAGS
   -f, --force    Run yarn install with force flag.
@@ -173,26 +130,26 @@ DESCRIPTION
 
 
 ALIASES
-  $ uet plugins add
+  $ ue plugins add
 
 EXAMPLES
-  $ uet plugins add myplugin 
+  $ ue plugins add myplugin 
 
-  $ uet plugins add https://github.com/someuser/someplugin
+  $ ue plugins add https://github.com/someuser/someplugin
 
-  $ uet plugins add someuser/someplugin
+  $ ue plugins add someuser/someplugin
 ```
 
-## `uet plugins:inspect PLUGIN...`
+## `ue plugins:inspect PLUGIN...`
 
 Displays installation properties of a plugin.
 
 ```
 USAGE
-  $ uet plugins inspect PLUGIN...
+  $ ue plugins inspect PLUGIN...
 
 ARGUMENTS
-  PLUGIN  [default: .] Plugin to inspect.
+  PLUGIN...  [default: .] Plugin to inspect.
 
 FLAGS
   -h, --help     Show CLI help.
@@ -205,21 +162,21 @@ DESCRIPTION
   Displays installation properties of a plugin.
 
 EXAMPLES
-  $ uet plugins inspect myplugin
+  $ ue plugins inspect myplugin
 ```
 
-_See code: [@oclif/plugin-plugins](https://github.com/oclif/plugin-plugins/blob/v4.1.10/lib/commands/plugins/inspect.ts)_
+_See code: [@oclif/plugin-plugins](https://github.com/oclif/plugin-plugins/blob/v4.3.10/src/commands/plugins/inspect.ts)_
 
-## `uet plugins:install PLUGIN...`
+## `ue plugins:install PLUGIN...`
 
 Installs a plugin into the CLI.
 
 ```
 USAGE
-  $ uet plugins install PLUGIN...
+  $ ue plugins install PLUGIN...
 
 ARGUMENTS
-  PLUGIN  Plugin to install.
+  PLUGIN...  Plugin to install.
 
 FLAGS
   -f, --force    Run yarn install with force flag.
@@ -242,25 +199,25 @@ DESCRIPTION
 
 
 ALIASES
-  $ uet plugins add
+  $ ue plugins add
 
 EXAMPLES
-  $ uet plugins install myplugin 
+  $ ue plugins install myplugin 
 
-  $ uet plugins install https://github.com/someuser/someplugin
+  $ ue plugins install https://github.com/someuser/someplugin
 
-  $ uet plugins install someuser/someplugin
+  $ ue plugins install someuser/someplugin
 ```
 
-_See code: [@oclif/plugin-plugins](https://github.com/oclif/plugin-plugins/blob/v4.1.10/lib/commands/plugins/install.ts)_
+_See code: [@oclif/plugin-plugins](https://github.com/oclif/plugin-plugins/blob/v4.3.10/src/commands/plugins/install.ts)_
 
-## `uet plugins:link PLUGIN`
+## `ue plugins:link PLUGIN`
 
 Links a plugin into the CLI for development.
 
 ```
 USAGE
-  $ uet plugins link PLUGIN
+  $ ue plugins link PLUGIN
 
 ARGUMENTS
   PATH  [default: .] path to plugin
@@ -279,21 +236,21 @@ DESCRIPTION
 
 
 EXAMPLES
-  $ uet plugins link myplugin
+  $ ue plugins link myplugin
 ```
 
-_See code: [@oclif/plugin-plugins](https://github.com/oclif/plugin-plugins/blob/v4.1.10/lib/commands/plugins/link.ts)_
+_See code: [@oclif/plugin-plugins](https://github.com/oclif/plugin-plugins/blob/v4.3.10/src/commands/plugins/link.ts)_
 
-## `uet plugins:uninstall PLUGIN...`
+## `ue plugins:uninstall PLUGIN...`
 
 Removes a plugin from the CLI.
 
 ```
 USAGE
-  $ uet plugins remove plugins:uninstall PLUGIN...
+  $ ue plugins remove plugins:uninstall PLUGIN...
 
 ARGUMENTS
-  PLUGIN  plugin to uninstall
+  PLUGIN...  plugin to uninstall
 
 FLAGS
   -h, --help     Show CLI help.
@@ -303,34 +260,38 @@ DESCRIPTION
   Removes a plugin from the CLI.
 
 ALIASES
-  $ uet plugins unlink
-  $ uet plugins remove
+  $ ue plugins unlink
+  $ ue plugins remove
 
 EXAMPLES
-  $ uet plugins remove myplugin
+  $ ue plugins remove myplugin
 ```
 
-## `uet plugins reset`
+## `ue plugins reset`
 
 Remove all user-installed and linked plugins.
 
 ```
 USAGE
-  $ uet plugins reset
+  $ ue plugins reset [--hard] [--reinstall]
+
+FLAGS
+  --hard       Delete node_modules and package manager related files in addition to uninstalling plugins.
+  --reinstall  Reinstall all plugins after uninstalling.
 ```
 
-_See code: [@oclif/plugin-plugins](https://github.com/oclif/plugin-plugins/blob/v4.1.10/lib/commands/plugins/reset.ts)_
+_See code: [@oclif/plugin-plugins](https://github.com/oclif/plugin-plugins/blob/v4.3.10/src/commands/plugins/reset.ts)_
 
-## `uet plugins:uninstall PLUGIN...`
+## `ue plugins:uninstall PLUGIN...`
 
 Removes a plugin from the CLI.
 
 ```
 USAGE
-  $ uet plugins uninstall PLUGIN...
+  $ ue plugins uninstall PLUGIN...
 
 ARGUMENTS
-  PLUGIN  plugin to uninstall
+  PLUGIN...  plugin to uninstall
 
 FLAGS
   -h, --help     Show CLI help.
@@ -340,25 +301,25 @@ DESCRIPTION
   Removes a plugin from the CLI.
 
 ALIASES
-  $ uet plugins unlink
-  $ uet plugins remove
+  $ ue plugins unlink
+  $ ue plugins remove
 
 EXAMPLES
-  $ uet plugins uninstall myplugin
+  $ ue plugins uninstall myplugin
 ```
 
-_See code: [@oclif/plugin-plugins](https://github.com/oclif/plugin-plugins/blob/v4.1.10/lib/commands/plugins/uninstall.ts)_
+_See code: [@oclif/plugin-plugins](https://github.com/oclif/plugin-plugins/blob/v4.3.10/src/commands/plugins/uninstall.ts)_
 
-## `uet plugins:uninstall PLUGIN...`
+## `ue plugins:uninstall PLUGIN...`
 
 Removes a plugin from the CLI.
 
 ```
 USAGE
-  $ uet plugins unlink plugins:uninstall PLUGIN...
+  $ ue plugins unlink plugins:uninstall PLUGIN...
 
 ARGUMENTS
-  PLUGIN  plugin to uninstall
+  PLUGIN...  plugin to uninstall
 
 FLAGS
   -h, --help     Show CLI help.
@@ -368,20 +329,20 @@ DESCRIPTION
   Removes a plugin from the CLI.
 
 ALIASES
-  $ uet plugins unlink
-  $ uet plugins remove
+  $ ue plugins unlink
+  $ ue plugins remove
 
 EXAMPLES
-  $ uet plugins unlink myplugin
+  $ ue plugins unlink myplugin
 ```
 
-## `uet plugins update`
+## `ue plugins update`
 
 Update installed plugins.
 
 ```
 USAGE
-  $ uet plugins update [-h] [-v]
+  $ ue plugins update [-h] [-v]
 
 FLAGS
   -h, --help     Show CLI help.
@@ -391,7 +352,27 @@ DESCRIPTION
   Update installed plugins.
 ```
 
-_See code: [@oclif/plugin-plugins](https://github.com/oclif/plugin-plugins/blob/v4.1.10/lib/commands/plugins/update.ts)_
+_See code: [@oclif/plugin-plugins](https://github.com/oclif/plugin-plugins/blob/v4.3.10/src/commands/plugins/update.ts)_
+
+## `ue version up TYPE`
+
+Bump project version
+
+```
+USAGE
+  $ ue version up TYPE [--android]
+
+ARGUMENTS
+  TYPE  (major|premajor|minor|preminor|patch|prepatch|prerelease) Type of version bumping
+
+FLAGS
+  --android
+
+DESCRIPTION
+  Bump project version
+```
+
+_See code: [src/commands/version/up.ts](https://github.com/b4n92uid/ue-toolkit/blob/v0.0.0/src/commands/version/up.ts)_
 <!-- commandsstop -->
 * [`oex hello PERSON`](#oex-hello-person)
 * [`oex hello world`](#oex-hello-world)
