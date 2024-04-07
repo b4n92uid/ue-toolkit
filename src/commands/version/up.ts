@@ -1,12 +1,13 @@
 import {Args, Command, Flags} from '@oclif/core'
 import {ConfigIniParser} from 'config-ini-parser'
-import {glob} from 'glob'
 import {readFile, writeFile} from 'node:fs/promises'
 import process from 'node:process'
 import {type ReleaseType, inc as incSemver} from 'semver'
 import * as WinAttr from 'winattr'
 
-export default class Hello extends Command {
+import {findSingleFile} from '../../utils/find-single-file.js'
+
+export default class VersionUp extends Command {
   static args = {
     type: Args.string({
       description: 'Type of version bumping',
@@ -21,19 +22,14 @@ export default class Hello extends Command {
     android: Flags.boolean(),
   }
 
-  async findSingleFile(pattern: string): Promise<null | string> {
-    const entries = await glob(pattern)
-    return entries.at(0) ?? null
-  }
-
   async run(): Promise<void> {
-    const {args, flags} = await this.parse(Hello)
+    const {args, flags} = await this.parse(VersionUp)
 
     this.log(`Current working directory: ${process.cwd()}`)
 
     const releaseType = args.type as ReleaseType
 
-    const projectName = await this.findSingleFile('./*.uproject')
+    const projectName = await findSingleFile('./*.uproject')
 
     if (!projectName) {
       this.error('Unable to find a unreal project in the current directory')
@@ -49,7 +45,7 @@ export default class Hello extends Command {
   }
 
   async updateAndroidBuild(releaseType: ReleaseType) {
-    const defaultEnginePath = await this.findSingleFile('./Config/DefaultEngine.ini')
+    const defaultEnginePath = await findSingleFile('./Config/DefaultEngine.ini')
 
     if (!defaultEnginePath) {
       this.error('DefaultGame.ini not found!')
@@ -88,7 +84,7 @@ export default class Hello extends Command {
   }
 
   async updateProjectVersion(releaseType: ReleaseType) {
-    const defaultGamePath = await this.findSingleFile('./Config/DefaultGame.ini')
+    const defaultGamePath = await findSingleFile('./Config/DefaultGame.ini')
 
     if (!defaultGamePath) {
       this.error('DefaultGame.ini not found!')

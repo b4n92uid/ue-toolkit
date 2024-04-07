@@ -42,6 +42,7 @@ USAGE
 <!-- usagestop -->
 # Commands
 <!-- commands -->
+* [`ue build PLATFORM TYPE CONFIG`](#ue-build-platform-type-config)
 * [`ue help [COMMANDS]`](#ue-help-commands)
 * [`ue plugins`](#ue-plugins)
 * [`ue plugins:install PLUGIN...`](#ue-pluginsinstall-plugin)
@@ -54,6 +55,30 @@ USAGE
 * [`ue plugins:uninstall PLUGIN...`](#ue-pluginsuninstall-plugin-2)
 * [`ue plugins update`](#ue-plugins-update)
 * [`ue version up TYPE`](#ue-version-up-type)
+
+## `ue build PLATFORM TYPE CONFIG`
+
+Build cook run
+
+```
+USAGE
+  $ ue build PLATFORM TYPE CONFIG [--cwd <value>] [-n <value>] [-p <value>]
+
+ARGUMENTS
+  PLATFORM  (android|windows|linux) Target platform
+  TYPE      (client|server) Running type
+  CONFIG    (test|debug|development|shipping) Running config
+
+FLAGS
+  -n, --androidDisplayName=<value>
+  -p, --androidPackageName=<value>
+  --cwd=<value>
+
+DESCRIPTION
+  Build cook run
+```
+
+_See code: [src/commands/build/index.ts](https://github.com/b4n92uid/ue-toolkit/blob/v0.0.0/src/commands/build/index.ts)_
 
 ## `ue help [COMMANDS]`
 
