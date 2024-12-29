@@ -4,6 +4,7 @@
     "ue": "./bin/run.js"
   },
   "dependencies": {
+    "@npmcli/promise-spawn": "^8.0.2",
     "@oclif/core": "^3.26.0",
     "@oclif/plugin-help": "^6.0.20",
     "@oclif/plugin-plugins": "^4.3.10",
@@ -11,6 +12,7 @@
     "change-case": "^5.4.4",
     "config-ini-parser": "^1.6.1",
     "glob": "^10.3.12",
+    "ora": "^8.1.1",
     "semver": "^7.6.0",
     "terminal-kit": "^3.1.1",
     "winattr": "^3.0.0"
@@ -22,6 +24,7 @@
     "@types/chai": "^4",
     "@types/mocha": "^10",
     "@types/node": "^18",
+    "@types/npmcli__promise-spawn": "^6.0.3",
     "@types/semver": "^7.5.8",
     "@types/terminal-kit": "^2.5.6",
     "@types/winattr": "^3.0.0",

@@ -1,11 +1,14 @@
+import spawn from '@npmcli/promise-spawn'
 import {Args, Command, Flags} from '@oclif/core'
 import boxen from 'boxen'
 import {pascalCase} from 'change-case'
-import {spawn} from 'node:child_process'
 import fs from 'node:fs'
 import path from 'node:path'
+import ora from 'ora'
 
+import {escapeToUnicode} from '../../utils/escape-to-unicode.js'
 import {findSingleFile} from '../../utils/find-single-file.js'
+import {formatConfigOverride} from '../../utils/format-config-override.js'
 import {getProjectVersion} from '../../utils/get-project-version.js'
 
 interface BuildCookRunOptions {
@@ -13,6 +16,7 @@ interface BuildCookRunOptions {
   androidPackageName: string | undefined
   config: string
   platform: string
+  verbose: boolean
 }
 export default class Build extends Command {
   static override args = {
@@ -49,14 +53,23 @@ export default class Build extends Command {
 
     if (options.androidPackageName) {
       params.push(
-        `-ini:Engine:[/Script/AndroidRuntimeSettings.AndroidRuntimeSettings]:PackageName=${options.androidPackageName}`,
+        formatConfigOverride({
+          file: 'Engine',
+          section: '/Script/AndroidRuntimeSettings.AndroidRuntimeSettings',
+          key: 'PackageName',
+          value: options.androidPackageName,
+        }),
       )
     }
 
     if (options.androidDisplayName) {
       params.push(
-        // Echo\\u0020Is\\u0020Falling\\u0020[Staging]
-        `-ini:Engine:[/Script/AndroidRuntimeSettings.AndroidRuntimeSettings]:ApplicationDisplayName=${options.androidDisplayName}`,
+        formatConfigOverride({
+          file: 'Engine',
+          section: '/Script/AndroidRuntimeSettings.AndroidRuntimeSettings',
+          key: 'ApplicationDisplayName',
+          value: escapeToUnicode(options.androidDisplayName),
+        }),
       )
     }
 
@@ -79,25 +92,23 @@ export default class Build extends Command {
       `-ArchiveDirectory=${archiveLocation}`,
     )
 
-    const uatResult = await new Promise<number>((resolve) => {
-      const uatProcess = spawn('RunUAT.bat', ['BuildCookRun', ...params], {stdio: 'inherit'})
+    const engineLocation = 'E:\\games\\UE_5.3'
+    const uat = path.join(engineLocation, 'Engine', 'Build', 'BatchFiles', 'RunUAT.bat')
 
-      uatProcess.on('exit', async (code) => {
-        resolve(code ?? 0)
+    try {
+      const uatResult = await spawn(uat, ['BuildCookRun', ...params], {
+        stdio: options.verbose ? 'inherit' : 'ignore',
+        shell: true,
       })
-    })
 
-    return uatResult
-  }
-
-  logHeader(message: string) {
-    this.log(
-      boxen(message, {
-        padding: 1,
-        borderStyle: 'round',
-        borderColor: 'greenBright',
-      }),
-    )
+      return uatResult
+    } catch (error) {
+      if (error instanceof Error) {
+        this.error(error.message)
+      } else {
+        this.error('Unknown error')
+      }
+    }
   }
 
   async prepareExecutable(archiveLocation: string, projectName: string) {
@@ -110,10 +121,9 @@ export default class Build extends Command {
     const version = await getProjectVersion()
 
     const newLocation = path.join(archiveLocation, `${projectName}-${version}.apk`)
-
     fs.renameSync(exeLocation, newLocation)
 
-    console.log(newLocation)
+    return newLocation
   }
 
   public async run(): Promise<void> {
@@ -135,15 +145,32 @@ export default class Build extends Command {
 
     const projectName = path.basename(projectPath, '.uproject')
 
-    this.logHeader(`🎮 Project Name ${projectName}`)
+    this.log(
+      boxen(`🎮 Project Name: ${projectName}`, {
+        padding: 1,
+        borderStyle: 'round',
+        borderColor: 'greenBright',
+      }),
+    )
 
-    this.buildCookRun(projectPath, archiveLocation, {
+    const buildingTask = ora(`🏗️ Building...`).start()
+
+    await this.buildCookRun(projectPath, archiveLocation, {
       androidDisplayName: flags.androidDisplayName,
       androidPackageName: flags.androidPackageName,
       config: args.config,
       platform: args.platform,
+      verbose: false,
     })
 
-    this.prepareExecutable(archiveLocation, projectName)
+    buildingTask.stopAndPersist({
+      text: `✅ Building complete`,
+    })
+
+    const copyingTask = ora(`📦 Copying...`).start()
+
+    const executableLocation = await this.prepareExecutable(archiveLocation, projectName)
+
+    copyingTask.stopAndPersist({text: `✅ Copying complete: ${executableLocation}`})
   }
 }
