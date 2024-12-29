@@ -2,6 +2,7 @@
   "extends": ["oclif", "oclif-typescript", "prettier"],
   "rules": {
     "perfectionist/sort-objects": "off",
-    "@typescript-eslint/no-unused-vars": "warn"
+    "@typescript-eslint/no-unused-vars": "warn",
+    "perfectionist/sort-classes": "off"
   }
 }

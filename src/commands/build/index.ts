@@ -9,12 +9,21 @@ import ora from 'ora'
 import {escapeToUnicode} from '../../utils/escape-to-unicode.js'
 import {findSingleFile} from '../../utils/find-single-file.js'
 import {formatConfigOverride} from '../../utils/format-config-override.js'
+import {getEngineLocation} from '../../utils/get-engine-location.js'
+import {getPackageName} from '../../utils/get-package-name.js'
+import {getProjectName} from '../../utils/get-project-name.js'
 import {getProjectVersion} from '../../utils/get-project-version.js'
 
 interface BuildCookRunOptions {
-  androidDisplayName: string | undefined
-  androidPackageName: string | undefined
   config: string
+  flavor?: string
+  platform: string
+  verbose: boolean
+}
+
+interface CopyArtifactOptions {
+  config: string
+  flavor?: string
   platform: string
   verbose: boolean
 }
@@ -38,37 +47,43 @@ export default class Build extends Command {
       parse: async (v) => pascalCase(v),
       required: true,
     }),
+    flavor: Args.string({
+      description: 'Flavor',
+      required: false,
+    }),
   }
 
   static override description = 'Build cook run'
 
   static override flags = {
     cwd: Flags.string(),
-    androidDisplayName: Flags.string({char: 'n'}),
-    androidPackageName: Flags.string({char: 'p'}),
+    verbose: Flags.boolean(),
   }
 
-  async buildCookRun(projectPath: string, archiveLocation: string, options: BuildCookRunOptions) {
-    const params = [`-Project=${projectPath}`]
+  private _projectLocation: string | undefined
+  private _projectFile: string | undefined
+  private _projectName: string | undefined
+  private _outputLocation: string | undefined
 
-    if (options.androidPackageName) {
+  async buildCookRun(options: BuildCookRunOptions) {
+    const params = [`-Project=${this._projectFile}`]
+
+    const projectName = await getProjectName()
+    const packageName = await getPackageName()
+
+    if (options.flavor) {
       params.push(
         formatConfigOverride({
           file: 'Engine',
           section: '/Script/AndroidRuntimeSettings.AndroidRuntimeSettings',
           key: 'PackageName',
-          value: options.androidPackageName,
+          value: `${packageName}.${options.flavor}`,
         }),
-      )
-    }
-
-    if (options.androidDisplayName) {
-      params.push(
         formatConfigOverride({
           file: 'Engine',
           section: '/Script/AndroidRuntimeSettings.AndroidRuntimeSettings',
           key: 'ApplicationDisplayName',
-          value: escapeToUnicode(options.androidDisplayName),
+          value: escapeToUnicode(`${projectName} [${options.flavor}]`),
         }),
       )
     }
@@ -89,10 +104,15 @@ export default class Build extends Command {
       '-Stage',
       '-Package',
       '-Archive',
-      `-ArchiveDirectory=${archiveLocation}`,
+      `-ArchiveDirectory=${this._outputLocation}`,
     )
 
-    const engineLocation = 'E:\\games\\UE_5.3'
+    const engineLocation = await getEngineLocation()
+
+    if (!engineLocation) {
+      this.error('Unable to find the engine location')
+    }
+
     const uat = path.join(engineLocation, 'Engine', 'Build', 'BatchFiles', 'RunUAT.bat')
 
     try {
@@ -111,8 +131,8 @@ export default class Build extends Command {
     }
   }
 
-  async prepareExecutable(archiveLocation: string, projectName: string) {
-    const exeLocation = await findSingleFile('*.apk', archiveLocation)
+  async copyArtifact(options: CopyArtifactOptions) {
+    const exeLocation = await findSingleFile('*.apk', this._outputLocation)
 
     if (!exeLocation) {
       this.error('Unable to find an apk in the packaged folder')
@@ -120,7 +140,8 @@ export default class Build extends Command {
 
     const version = await getProjectVersion()
 
-    const newLocation = path.join(archiveLocation, `${projectName}-${version}.apk`)
+    const basename = [this._projectName, options.flavor, version]
+    const newLocation = path.join(this._outputLocation ?? '', basename.join('-') + '.apk')
     fs.renameSync(exeLocation, newLocation)
 
     return newLocation
@@ -133,20 +154,24 @@ export default class Build extends Command {
       process.chdir(flags.cwd)
     }
 
-    const projectPath = await findSingleFile('*.uproject', flags.cwd)
+    this._projectFile = await findSingleFile('*.uproject', flags.cwd)
 
-    if (!projectPath) {
+    if (!this._projectFile) {
       this.error('Unable to find a unreal project in the current directory')
     }
 
-    const projectLocation = path.dirname(projectPath)
+    this._projectLocation = path.dirname(this._projectFile)
 
-    const archiveLocation = path.join(projectLocation, 'Packaged', [args.platform, args.type, args.config].join(''))
+    this._outputLocation = path.join(
+      this._projectLocation,
+      'Packaged',
+      [args.platform, args.type, args.config].join(''),
+    )
 
-    const projectName = path.basename(projectPath, '.uproject')
+    this._projectName = path.basename(this._projectFile, '.uproject')
 
     this.log(
-      boxen(`🎮 Project Name: ${projectName}`, {
+      boxen(`🎮 Project Name: ${this._projectName}`, {
         padding: 1,
         borderStyle: 'round',
         borderColor: 'greenBright',
@@ -155,12 +180,11 @@ export default class Build extends Command {
 
     const buildingTask = ora(`🏗️ Building...`).start()
 
-    await this.buildCookRun(projectPath, archiveLocation, {
-      androidDisplayName: flags.androidDisplayName,
-      androidPackageName: flags.androidPackageName,
+    await this.buildCookRun({
       config: args.config,
       platform: args.platform,
-      verbose: false,
+      flavor: args.flavor,
+      verbose: flags.verbose,
     })
 
     buildingTask.stopAndPersist({
@@ -169,7 +193,12 @@ export default class Build extends Command {
 
     const copyingTask = ora(`📦 Copying...`).start()
 
-    const executableLocation = await this.prepareExecutable(archiveLocation, projectName)
+    const executableLocation = await this.copyArtifact({
+      config: args.config,
+      platform: args.platform,
+      flavor: args.flavor,
+      verbose: flags.verbose,
+    })
 
     copyingTask.stopAndPersist({text: `✅ Copying complete: ${executableLocation}`})
   }
