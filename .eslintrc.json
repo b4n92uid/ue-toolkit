@@ -3,6 +3,8 @@
   "rules": {
     "perfectionist/sort-objects": "off",
     "@typescript-eslint/no-unused-vars": "warn",
-    "perfectionist/sort-classes": "off"
+    "perfectionist/sort-classes": "off",
+    "perfectionist/sort-object-types": "off",
+    "perfectionist/sort-union-types": "off"
   }
 }
