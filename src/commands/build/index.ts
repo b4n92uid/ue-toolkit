@@ -1,10 +1,8 @@
-import spawn from '@npmcli/promise-spawn'
 import {Args, Command, Flags} from '@oclif/core'
-import boxen from 'boxen'
 import {pascalCase} from 'change-case'
+import {spawn} from 'node:child_process'
 import fs from 'node:fs'
 import path from 'node:path'
-import ora from 'ora'
 
 import {escapeToUnicode} from '../../utils/escape-to-unicode.js'
 import {findSingleFile} from '../../utils/find-single-file.js'
@@ -62,7 +60,6 @@ export default class Build extends Command {
 
   private _projectLocation: string | undefined
   private _projectFile: string | undefined
-  private _projectName: string | undefined
   private _outputLocation: string | undefined
 
   async buildCookRun(options: BuildCookRunOptions) {
@@ -107,21 +104,8 @@ export default class Build extends Command {
       `-ArchiveDirectory=${this._outputLocation}`,
     )
 
-    const engineLocation = await getEngineLocation()
-
-    if (!engineLocation) {
-      this.error('Unable to find the engine location')
-    }
-
-    const uat = path.join(engineLocation, 'Engine', 'Build', 'BatchFiles', 'RunUAT.bat')
-
     try {
-      const uatResult = await spawn(uat, ['BuildCookRun', ...params], {
-        stdio: options.verbose ? 'inherit' : 'ignore',
-        shell: true,
-      })
-
-      return uatResult
+      await this.runUAT(options.verbose, params)
     } catch (error) {
       if (error instanceof Error) {
         this.error(error.message)
@@ -131,20 +115,94 @@ export default class Build extends Command {
     }
   }
 
+  async runUAT(verbose: boolean, params: string[]) {
+    const engineLocation = await getEngineLocation()
+
+    if (!engineLocation) {
+      this.error('Unable to find the engine location')
+    }
+
+    const uat = path.join(engineLocation, 'Engine', 'Build', 'BatchFiles', 'RunUAT.bat')
+
+    return new Promise((resolve, reject) => {
+      const process = spawn(uat, ['BuildCookRun', ...params], {
+        stdio: verbose ? 'inherit' : 'pipe',
+        shell: true,
+      })
+
+      process.stdout?.on('data', (data: Buffer) => {
+        const line = data.toString()
+
+        if (verbose) {
+          this.log(line)
+          return
+        }
+
+        if (/BUILD COMMAND STARTED/.test(line)) {
+          this.log('⚒️ Build command started')
+        }
+
+        if (/COOK COMMAND STARTED/.test(line)) {
+          this.log('🍳 Cook command started')
+        }
+
+        if (/STAGE COMMAND STARTED/.test(line)) {
+          this.log('📚 Stage command started')
+        }
+
+        if (/PACKAGE COMMAND STARTED/.test(line)) {
+          this.log('📦 Package command started')
+        }
+
+        if (/Making .apk with Gradle.../.test(line)) {
+          this.log('📱 Making APK')
+        }
+
+        if (/ARCHIVE COMMAND STARTED/.test(line)) {
+          this.log('💾 Archive command started')
+        }
+
+        if (/AutomationTool exiting with ExitCode=0/.test(line)) {
+          this.log('✅ Building complete')
+        }
+      })
+
+      process.stderr?.on('data', (data: Buffer) => {
+        this.error(data.toString())
+      })
+
+      process.on('close', (code) => {
+        if (code && code !== 0) {
+          reject(new Error('UAT failed'))
+        } else {
+          resolve(true)
+        }
+      })
+    })
+  }
+
   async copyArtifact(options: CopyArtifactOptions) {
+    this.log(`⚙️ Exposing artifacts...`)
+
+    const projectBasename = path.basename(this._projectFile!, '.uproject')
+    const projectVersion = await getProjectVersion()
+    const artifactBasename = [projectBasename, options.flavor, projectVersion]
+
+    const newLocation = path.join(this._outputLocation ?? '', artifactBasename.join('-') + '.apk')
+
+    if (fs.existsSync(newLocation)) {
+      fs.existsSync(newLocation)
+    }
+
     const exeLocation = await findSingleFile('*.apk', this._outputLocation)
 
     if (!exeLocation) {
       this.error('Unable to find an apk in the packaged folder')
     }
 
-    const version = await getProjectVersion()
-
-    const basename = [this._projectName, options.flavor, version]
-    const newLocation = path.join(this._outputLocation ?? '', basename.join('-') + '.apk')
     fs.renameSync(exeLocation, newLocation)
 
-    return newLocation
+    this.log(`🎉 ${newLocation}`)
   }
 
   public async run(): Promise<void> {
@@ -168,17 +226,8 @@ export default class Build extends Command {
       [args.platform, args.type, args.config].join(''),
     )
 
-    this._projectName = path.basename(this._projectFile, '.uproject')
-
-    this.log(
-      boxen(`🎮 Project Name: ${this._projectName}`, {
-        padding: 1,
-        borderStyle: 'round',
-        borderColor: 'greenBright',
-      }),
-    )
-
-    const buildingTask = ora(`🏗️ Building...`).start()
+    this.log(`🚀 Unreal ToolKit`)
+    this.log(`🎮 ${this._projectFile}`)
 
     await this.buildCookRun({
       config: args.config,
@@ -187,19 +236,11 @@ export default class Build extends Command {
       verbose: flags.verbose,
     })
 
-    buildingTask.stopAndPersist({
-      text: `✅ Building complete`,
-    })
-
-    const copyingTask = ora(`📦 Copying...`).start()
-
-    const executableLocation = await this.copyArtifact({
+    await this.copyArtifact({
       config: args.config,
       platform: args.platform,
       flavor: args.flavor,
       verbose: flags.verbose,
     })
-
-    copyingTask.stopAndPersist({text: `✅ Copying complete: ${executableLocation}`})
   }
 }
