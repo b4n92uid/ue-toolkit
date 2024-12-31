@@ -191,7 +191,7 @@ export default class Build extends Command {
     const newLocation = path.join(this._outputLocation ?? '', artifactBasename.join('-') + '.apk')
 
     if (fs.existsSync(newLocation)) {
-      fs.existsSync(newLocation)
+      fs.unlinkSync(newLocation)
     }
 
     const exeLocation = await findSingleFile('*.apk', this._outputLocation)
@@ -200,7 +200,7 @@ export default class Build extends Command {
       this.error('Unable to find an apk in the packaged folder')
     }
 
-    fs.renameSync(exeLocation, newLocation)
+    fs.copyFileSync(exeLocation, newLocation)
 
     this.log(`🎉 ${newLocation}`)
   }
