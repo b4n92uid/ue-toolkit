@@ -2,6 +2,7 @@ import {Args, Command, Flags} from '@oclif/core'
 import {pascalCase} from 'change-case'
 import {spawn} from 'node:child_process'
 import fs from 'node:fs'
+import fsp from 'node:fs/promises'
 import path from 'node:path'
 
 import {escapeToUnicode} from '../../utils/escape-to-unicode.js'
@@ -104,15 +105,7 @@ export default class Build extends Command {
       `-ArchiveDirectory=${this._outputLocation}`,
     )
 
-    try {
-      await this.runUAT(options.verbose, params)
-    } catch (error) {
-      if (error instanceof Error) {
-        this.error(error.message)
-      } else {
-        this.error('Unknown error')
-      }
-    }
+    await this.runUAT(options.verbose, params)
   }
 
   async runUAT(verbose: boolean, params: string[]) {
@@ -191,16 +184,16 @@ export default class Build extends Command {
     const newLocation = path.join(this._outputLocation ?? '', artifactBasename.join('-') + '.apk')
 
     if (fs.existsSync(newLocation)) {
-      fs.unlinkSync(newLocation)
+      await fsp.unlink(newLocation)
     }
 
     const exeLocation = await findSingleFile('*.apk', this._outputLocation)
 
     if (!exeLocation) {
-      this.error('Unable to find an apk in the packaged folder')
+      throw new Error('Unable to find an apk in the packaged folder')
     }
 
-    fs.copyFileSync(exeLocation, newLocation)
+    await fsp.copyFile(exeLocation, newLocation)
 
     this.log(`🎉 ${newLocation}`)
   }
@@ -223,24 +216,32 @@ export default class Build extends Command {
     this._outputLocation = path.join(
       this._projectLocation,
       'Packaged',
-      [args.platform, args.type, args.config].join(''),
+      [args.platform, args.type, args.config, '_', args.flavor].join(''),
     )
 
     this.log(`🚀 Unreal ToolKit`)
     this.log(`🎮 ${this._projectFile}`)
 
-    await this.buildCookRun({
-      config: args.config,
-      platform: args.platform,
-      flavor: args.flavor,
-      verbose: flags.verbose,
-    })
+    try {
+      await this.buildCookRun({
+        config: args.config,
+        platform: args.platform,
+        flavor: args.flavor,
+        verbose: flags.verbose,
+      })
 
-    await this.copyArtifact({
-      config: args.config,
-      platform: args.platform,
-      flavor: args.flavor,
-      verbose: flags.verbose,
-    })
+      await this.copyArtifact({
+        config: args.config,
+        platform: args.platform,
+        flavor: args.flavor,
+        verbose: flags.verbose,
+      })
+    } catch (error) {
+      if (error instanceof Error) {
+        this.error(error.message)
+      } else {
+        this.error('Unknown error')
+      }
+    }
   }
 }
