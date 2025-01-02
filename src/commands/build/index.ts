@@ -1,5 +1,6 @@
 import {Args, Command, Flags} from '@oclif/core'
 import {pascalCase} from 'change-case'
+import {map} from 'lodash-es'
 import {spawn} from 'node:child_process'
 import fs from 'node:fs'
 import fsp from 'node:fs/promises'
@@ -13,11 +14,14 @@ import {getPackageName} from '../../utils/get-package-name.js'
 import {getProjectName} from '../../utils/get-project-name.js'
 import {getProjectVersion} from '../../utils/get-project-version.js'
 
+type DefineDict = Record<string, string>
+
 interface BuildCookRunOptions {
   config: string
   flavor?: string
   platform: string
   verbose: boolean
+  defines: DefineDict
 }
 
 interface CopyArtifactOptions {
@@ -57,6 +61,10 @@ export default class Build extends Command {
   static override flags = {
     cwd: Flags.string(),
     verbose: Flags.boolean(),
+    define: Flags.string({
+      multiple: true,
+      char: 'd',
+    }),
   }
 
   private _projectLocation: string | undefined
@@ -105,25 +113,26 @@ export default class Build extends Command {
       `-ArchiveDirectory=${this._outputLocation}`,
     )
 
-    await this.runUAT(options.verbose, params)
+    await this.runUAT(options.verbose, options.defines, params)
   }
 
-  async runUAT(verbose: boolean, params: string[]) {
+  async runUAT(verbose: boolean, defines: DefineDict, params: string[]) {
     const engineLocation = await getEngineLocation()
 
     if (!engineLocation) {
       this.error('Unable to find the engine location')
     }
 
-    const uat = path.join(engineLocation, 'Engine', 'Build', 'BatchFiles', 'RunUAT.bat')
+    const uatPath = path.join(engineLocation, 'Engine', 'Build', 'BatchFiles', 'RunUAT.bat')
 
     return new Promise((resolve, reject) => {
-      const process = spawn(uat, ['BuildCookRun', ...params], {
+      const uatProc = spawn(uatPath, ['BuildCookRun', ...params], {
         stdio: verbose ? 'inherit' : 'pipe',
         shell: true,
+        env: {...process.env, ...defines},
       })
 
-      process.stdout?.on('data', (data: Buffer) => {
+      uatProc.stdout?.on('data', (data: Buffer) => {
         const line = data.toString()
 
         if (verbose) {
@@ -160,11 +169,11 @@ export default class Build extends Command {
         }
       })
 
-      process.stderr?.on('data', (data: Buffer) => {
+      uatProc.stderr?.on('data', (data: Buffer) => {
         this.error(data.toString())
       })
 
-      process.on('close', (code) => {
+      uatProc.on('close', (code) => {
         if (code && code !== 0) {
           reject(new Error('UAT failed'))
         } else {
@@ -198,6 +207,15 @@ export default class Build extends Command {
     this.log(`🎉 ${newLocation}`)
   }
 
+  public async parseDefines(defines: string[]): Promise<DefineDict> {
+    return Object.fromEntries(
+      map(defines, (define) => {
+        const [key, value] = define.split('=')
+        return [key, value]
+      }),
+    )
+  }
+
   public async run(): Promise<void> {
     const {args, flags} = await this.parse(Build)
 
@@ -222,12 +240,15 @@ export default class Build extends Command {
     this.log(`🚀 Unreal ToolKit`)
     this.log(`🎮 ${this._projectFile}`)
 
+    const defines = await this.parseDefines(flags.define ?? [])
+
     try {
       await this.buildCookRun({
         config: args.config,
         platform: args.platform,
         flavor: args.flavor,
         verbose: flags.verbose,
+        defines,
       })
 
       await this.copyArtifact({
