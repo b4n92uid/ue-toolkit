@@ -1,6 +1,5 @@
 import {Args, Command, Flags} from '@oclif/core'
-import {pascalCase} from 'change-case'
-import {map} from 'lodash-es'
+import {compact, map} from 'lodash-es'
 import {spawn} from 'node:child_process'
 import fs from 'node:fs'
 import fsp from 'node:fs/promises'
@@ -15,6 +14,12 @@ import {getProjectName} from '../../utils/get-project-name.js'
 import {getProjectVersion} from '../../utils/get-project-version.js'
 
 type DefineDict = Record<string, string>
+
+// const PLATFORM_OPTIONS = ['Android', 'Windows', 'Linux'] as const
+
+// const TYPE_OPTIONS = ['Client', 'Server'] as const
+
+// const CONFIG_OPTIONS = ['Test', 'Debug', 'Development', 'Shipping'] as const
 
 interface BuildCookRunOptions {
   config: string
@@ -34,25 +39,18 @@ export default class Build extends Command {
   static override args = {
     platform: Args.string({
       description: 'Target platform',
-      options: ['android', 'windows', 'linux'],
-      parse: async (v) => pascalCase(v),
+      options: ['Android', 'Windows', 'Linux'],
       required: true,
     }),
     type: Args.string({
       description: 'Running type',
-      options: ['client', 'server'],
-      parse: async (v) => pascalCase(v),
+      options: ['Client', 'Server'],
       required: true,
     }),
     config: Args.string({
       description: 'Running config',
-      options: ['test', 'debug', 'development', 'shipping'],
-      parse: async (v) => pascalCase(v),
+      options: ['Test', 'Debug', 'Development', 'Shipping'],
       required: true,
-    }),
-    flavor: Args.string({
-      description: 'Flavor',
-      required: false,
     }),
   }
 
@@ -61,9 +59,13 @@ export default class Build extends Command {
   static override flags = {
     cwd: Flags.string(),
     verbose: Flags.boolean(),
+    copy: Flags.boolean({default: true, allowNo: true}),
     define: Flags.string({
       multiple: true,
       char: 'd',
+    }),
+    flavor: Flags.string({
+      required: false,
     }),
   }
 
@@ -72,13 +74,20 @@ export default class Build extends Command {
   private _outputLocation: string | undefined
 
   async buildCookRun(options: BuildCookRunOptions) {
-    const params = [`-Project=${this._projectFile}`]
+    let params = [`-Project=${this._projectFile}`]
 
     const projectName = await getProjectName()
     const packageName = await getPackageName()
 
     if (options.flavor) {
-      params.push(
+      params = [
+        ...params,
+        formatConfigOverride({
+          file: 'Game',
+          section: '/Script/EngineSettings.GeneralProjectSettings',
+          key: 'Flavor',
+          value: options.flavor,
+        }),
         formatConfigOverride({
           file: 'Engine',
           section: '/Script/AndroidRuntimeSettings.AndroidRuntimeSettings',
@@ -91,10 +100,11 @@ export default class Build extends Command {
           key: 'ApplicationDisplayName',
           value: escapeToUnicode(`${projectName} [${options.flavor}]`),
         }),
-      )
+      ]
     }
 
-    params.push(
+    params = [
+      ...params,
       '-SaveConfigOverrides',
       '-NoP4',
       `-ClientConfig=${options.config}`,
@@ -103,6 +113,7 @@ export default class Build extends Command {
       '-UTF8Output',
       `-Platform=${options.platform}`,
       '-CookFlavor=ETC2',
+      options.config === 'Shipping' ? '-Distribution' : '',
       '-Build',
       '-Cook',
       '-CookCultures=en',
@@ -111,9 +122,9 @@ export default class Build extends Command {
       '-Package',
       '-Archive',
       `-ArchiveDirectory=${this._outputLocation}`,
-    )
+    ]
 
-    await this.runUAT(options.verbose, options.defines, params)
+    await this.runUAT(options.verbose, options.defines, compact(params))
   }
 
   async runUAT(verbose: boolean, defines: DefineDict, params: string[]) {
@@ -188,7 +199,7 @@ export default class Build extends Command {
 
     const projectBasename = path.basename(this._projectFile!, '.uproject')
     const projectVersion = await getProjectVersion()
-    const artifactBasename = [projectBasename, options.flavor, projectVersion]
+    const artifactBasename = [projectBasename, options.config, options.flavor, projectVersion]
 
     const newLocation = path.join(this._outputLocation ?? '', artifactBasename.join('-') + '.apk')
 
@@ -234,7 +245,7 @@ export default class Build extends Command {
     this._outputLocation = path.join(
       this._projectLocation,
       'Packaged',
-      [args.platform, args.type, args.config, '_', args.flavor].join(''),
+      [args.platform, args.type, args.config, flags.flavor].join(''),
     )
 
     this.log(`🚀 Unreal ToolKit`)
@@ -246,17 +257,19 @@ export default class Build extends Command {
       await this.buildCookRun({
         config: args.config,
         platform: args.platform,
-        flavor: args.flavor,
+        flavor: flags.flavor,
         verbose: flags.verbose,
         defines,
       })
 
-      await this.copyArtifact({
-        config: args.config,
-        platform: args.platform,
-        flavor: args.flavor,
-        verbose: flags.verbose,
-      })
+      if (flags.copy) {
+        await this.copyArtifact({
+          config: args.config,
+          platform: args.platform,
+          flavor: flags.flavor,
+          verbose: flags.verbose,
+        })
+      }
     } catch (error) {
       if (error instanceof Error) {
         this.error(error.message)
