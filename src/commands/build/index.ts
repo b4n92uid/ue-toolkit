@@ -81,34 +81,22 @@ export default class Build extends Command {
   async buildCookRun(options: BuildCookRunOptions) {
     let params = [`-Project=${this._projectFile}`]
 
-    if (options.flavor) {
+    if (options.flavor && options.flavor !== 'Prod') {
       params = [
         ...params,
         formatConfigOverride({
-          file: 'Game',
-          section: '/Script/EngineSettings.GeneralProjectSettings',
-          key: 'Flavor',
-          value: options.flavor,
+          file: 'Engine',
+          section: '/Script/AndroidRuntimeSettings.AndroidRuntimeSettings',
+          key: 'PackageName',
+          value: `${this._packageName}.${lowerCase(options.flavor)}`,
+        }),
+        formatConfigOverride({
+          file: 'Engine',
+          section: '/Script/AndroidRuntimeSettings.AndroidRuntimeSettings',
+          key: 'ApplicationDisplayName',
+          value: escapeToUnicode(`${this._projectName} [${options.flavor}]`),
         }),
       ]
-
-      if (options.flavor !== 'Prod') {
-        params = [
-          ...params,
-          formatConfigOverride({
-            file: 'Engine',
-            section: '/Script/AndroidRuntimeSettings.AndroidRuntimeSettings',
-            key: 'PackageName',
-            value: `${this._packageName}.${lowerCase(options.flavor)}`,
-          }),
-          formatConfigOverride({
-            file: 'Engine',
-            section: '/Script/AndroidRuntimeSettings.AndroidRuntimeSettings',
-            key: 'ApplicationDisplayName',
-            value: escapeToUnicode(`${this._projectName} [${options.flavor}]`),
-          }),
-        ]
-      }
     }
 
     params = [
@@ -275,6 +263,8 @@ export default class Build extends Command {
     this.log(`🎮 ${this._projectName} v${this._projectVersion}`)
 
     const defines = await this.parseDefines(flags.define ?? [])
+
+    defines.UE_GAME_FLAVOR = JSON.stringify(flags.flavor)
 
     try {
       await this.buildCookRun({
