@@ -67,6 +67,7 @@ export default class Build extends Command {
     flavor: Flags.string({
       required: false,
       options: ['Prod', 'Staging', 'Dev'],
+      default: 'Prod',
     }),
   }
 
