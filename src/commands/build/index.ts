@@ -204,24 +204,35 @@ export default class Build extends Command {
   async copyArtifact(options: CopyArtifactOptions) {
     this.log(`⚙️ Exposing artifacts...`)
 
-    const projectBasename = path.basename(this._projectFile!, '.uproject')
-    const artifactBasename = [projectBasename, options.config, options.flavor, '-', this._projectVersion]
+    const getNameByExt = (ext: string) => {
+      const projectBasename = path.basename(this._projectFile!, '.uproject')
+      const artifactBasename = [projectBasename, options.config, options.flavor, '-', this._projectVersion]
 
-    const newLocation = path.join(this._outputLocation ?? '', artifactBasename.join('') + '.apk')
+      const newLocation = path.join(this._outputLocation ?? '', artifactBasename.join('') + '.' + ext)
 
-    if (fs.existsSync(newLocation)) {
-      await fsp.unlink(newLocation)
+      return newLocation
     }
 
-    const exeLocation = await findSingleFile('*.apk', this._outputLocation)
+    const copyByExt = async (ext: string) => {
+      const newLocation = getNameByExt(ext)
 
-    if (!exeLocation) {
-      throw new Error('Unable to find an apk in the packaged folder')
+      if (fs.existsSync(newLocation)) {
+        await fsp.unlink(newLocation)
+      }
+
+      const exeLocation = await findSingleFile(`*.${ext}`, this._outputLocation)
+
+      if (!exeLocation) {
+        throw new Error(`Unable to find *.${ext} in the packaged folder`)
+      }
+
+      await fsp.copyFile(exeLocation, newLocation)
+
+      this.log(`🎉 ${newLocation}`)
     }
 
-    await fsp.copyFile(exeLocation, newLocation)
-
-    this.log(`🎉 ${newLocation}`)
+    await copyByExt('apk').catch((error) => this.error(error))
+    await copyByExt('aab').catch((error) => this.error(error))
   }
 
   public async parseDefines(defines: string[]): Promise<DefineDict> {
