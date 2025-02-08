@@ -1,5 +1,5 @@
 import {Args, Command, Flags} from '@oclif/core'
-import {compact, map} from 'lodash-es'
+import {compact, lowerCase, map} from 'lodash-es'
 import {spawn} from 'node:child_process'
 import fs from 'node:fs'
 import fsp from 'node:fs/promises'
@@ -66,18 +66,19 @@ export default class Build extends Command {
     }),
     flavor: Flags.string({
       required: false,
+      options: ['Prod', 'Staging', 'Dev'],
     }),
   }
 
   private _projectLocation: string | undefined
   private _projectFile: string | undefined
+  private _projectName: string | undefined
+  private _packageName: string | undefined
+  private _projectVersion: string | undefined
   private _outputLocation: string | undefined
 
   async buildCookRun(options: BuildCookRunOptions) {
     let params = [`-Project=${this._projectFile}`]
-
-    const projectName = await getProjectName()
-    const packageName = await getPackageName()
 
     if (options.flavor) {
       params = [
@@ -88,19 +89,25 @@ export default class Build extends Command {
           key: 'Flavor',
           value: options.flavor,
         }),
-        formatConfigOverride({
-          file: 'Engine',
-          section: '/Script/AndroidRuntimeSettings.AndroidRuntimeSettings',
-          key: 'PackageName',
-          value: `${packageName}.${options.flavor}`,
-        }),
-        formatConfigOverride({
-          file: 'Engine',
-          section: '/Script/AndroidRuntimeSettings.AndroidRuntimeSettings',
-          key: 'ApplicationDisplayName',
-          value: escapeToUnicode(`${projectName} [${options.flavor}]`),
-        }),
       ]
+
+      if (options.flavor !== 'Prod') {
+        params = [
+          ...params,
+          formatConfigOverride({
+            file: 'Engine',
+            section: '/Script/AndroidRuntimeSettings.AndroidRuntimeSettings',
+            key: 'PackageName',
+            value: `${this._packageName}.${lowerCase(options.flavor)}`,
+          }),
+          formatConfigOverride({
+            file: 'Engine',
+            section: '/Script/AndroidRuntimeSettings.AndroidRuntimeSettings',
+            key: 'ApplicationDisplayName',
+            value: escapeToUnicode(`${this._projectName} [${options.flavor}]`),
+          }),
+        ]
+      }
     }
 
     params = [
@@ -198,10 +205,9 @@ export default class Build extends Command {
     this.log(`⚙️ Exposing artifacts...`)
 
     const projectBasename = path.basename(this._projectFile!, '.uproject')
-    const projectVersion = await getProjectVersion()
-    const artifactBasename = [projectBasename, options.config, options.flavor, projectVersion]
+    const artifactBasename = [projectBasename, options.config, options.flavor, '-', this._projectVersion]
 
-    const newLocation = path.join(this._outputLocation ?? '', artifactBasename.join('-') + '.apk')
+    const newLocation = path.join(this._outputLocation ?? '', artifactBasename.join('') + '.apk')
 
     if (fs.existsSync(newLocation)) {
       await fsp.unlink(newLocation)
@@ -248,8 +254,13 @@ export default class Build extends Command {
       [args.platform, args.type, args.config, flags.flavor].join(''),
     )
 
-    this.log(`🚀 Unreal ToolKit`)
-    this.log(`🎮 ${this._projectFile}`)
+    this._projectVersion = await getProjectVersion()
+
+    this._projectName = await getProjectName()
+
+    this._packageName = await getPackageName()
+
+    this.log(`🎮 ${this._projectName} v${this._projectVersion}`)
 
     const defines = await this.parseDefines(flags.define ?? [])
 
