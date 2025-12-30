@@ -66,8 +66,6 @@ export default class Build extends Command {
     }),
     flavor: Flags.string({
       required: false,
-      options: ['Prod', 'Staging', 'Dev'],
-      default: 'Prod',
     }),
   }
 
@@ -263,8 +261,6 @@ export default class Build extends Command {
     this.log(`🎮 ${this._projectName} v${this._projectVersion}`)
 
     const defines = await this.parseDefines(flags.define ?? [])
-
-    defines.UE_GAME_FLAVOR = JSON.stringify(flags.flavor)
 
     try {
       await this.buildCookRun({
