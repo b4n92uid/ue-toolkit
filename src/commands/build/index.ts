@@ -58,6 +58,7 @@ export default class Build extends Command {
 
   static override flags = {
     cwd: Flags.string(),
+    output: Flags.string({default: '.'}),
     verbose: Flags.boolean(),
     copy: Flags.boolean({default: true, allowNo: true}),
     define: Flags.string({
@@ -78,9 +79,16 @@ export default class Build extends Command {
   private _outputLocation: string | undefined
 
   async buildCookRun(options: BuildCookRunOptions) {
+    this.log(
+      `🔧 Starting build process for ${options.platform} ${options.config}${
+        options.flavor ? ` (${options.flavor})` : ''
+      }`,
+    )
+
     let params = [`-Project=${this._projectFile}`]
 
     if (options.flavor && options.flavor !== 'Prod') {
+      this.log(`🏷️  Applying flavor config: ${options.flavor}`)
       params = [
         ...params,
         formatConfigOverride({
@@ -119,10 +127,15 @@ export default class Build extends Command {
       `-ArchiveDirectory=${this._outputLocation}`,
     ]
 
+    this.log(`🚀 Executing UAT BuildCookRun...`)
     await this.runUAT(options.verbose, options.defines, compact(params))
   }
 
   async runUAT(verbose: boolean, defines: DefineDict, params: string[]) {
+    if (Object.keys(defines).length > 0) {
+      this.log(`🔑 Applying custom defines: ${Object.keys(defines).join(', ')}`)
+    }
+
     const engineLocation = await getEngineLocation()
 
     if (!engineLocation) {
@@ -183,6 +196,7 @@ export default class Build extends Command {
         if (code && code !== 0) {
           reject(new Error('UAT failed'))
         } else {
+          this.log('✨ UAT process completed successfully')
           resolve(true)
         }
       })
@@ -202,6 +216,7 @@ export default class Build extends Command {
       const ext = path.extname(exeLocation)
 
       const newFileName = [
+        //
         this._projectFileBase,
         options.config,
         options.flavor,
@@ -221,12 +236,8 @@ export default class Build extends Command {
       this.log(`🎉 ${newLocation}`)
     }
 
-    await copyByExt(`${this._projectFileBase}-${options.platform}-${options.config}*.apk`).catch((error) =>
-      this.error(error),
-    )
-    await copyByExt(`${this._projectFileBase}-${options.platform}-${options.config}*.aab`).catch((error) =>
-      this.error(error),
-    )
+    await copyByExt(`${this._projectFileBase}*.apk`).catch((error) => this.error(error))
+    await copyByExt(`${this._projectFileBase}*.aab`).catch((error) => this.error(error))
   }
 
   public async parseDefines(defines: string[]): Promise<DefineDict> {
@@ -251,15 +262,18 @@ export default class Build extends Command {
       this.error('Unable to find a unreal project in the current directory')
     }
 
+    this.log(`📄 Project file: ${this._projectFile}`)
+
     this._projectLocation = path.dirname(this._projectFile)
 
     this._projectFileBase = path.basename(this._projectFile, '.uproject')
 
-    this._outputLocation = path.join(
-      this._projectLocation,
-      'Packaged',
-      [args.platform, args.type, args.config, flags.flavor].join(''),
+    this._outputLocation = path.resolve(
+      process.cwd(),
+      path.join(flags.output, [args.platform, args.type, args.config, flags.flavor].join('')),
     )
+
+    this.log(`📂 Output directory: ${this._outputLocation}`)
 
     this._projectVersion = await getProjectVersion()
 
