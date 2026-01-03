@@ -71,6 +71,7 @@ export default class Build extends Command {
 
   private _projectLocation: string | undefined
   private _projectFile: string | undefined
+  private _projectFileBase: string | undefined
   private _projectName: string | undefined
   private _packageName: string | undefined
   private _projectVersion: string | undefined
@@ -191,26 +192,28 @@ export default class Build extends Command {
   async copyArtifact(options: CopyArtifactOptions) {
     this.log(`⚙️ Exposing artifacts...`)
 
-    const getNameByExt = (ext: string) => {
-      const projectBasename = path.basename(this._projectFile!, '.uproject')
-      const artifactBasename = [projectBasename, options.config, options.flavor, '-', this._projectVersion]
+    const copyByExt = async (pattern: string) => {
+      const exeLocation = await findSingleFile(pattern, this._outputLocation)
 
-      const newLocation = path.join(this._outputLocation ?? '', artifactBasename.join('') + '.' + ext)
+      if (!exeLocation) {
+        throw new Error(`Unable to find ${pattern} in the packaged folder`)
+      }
 
-      return newLocation
-    }
+      const ext = path.extname(exeLocation)
 
-    const copyByExt = async (ext: string) => {
-      const newLocation = getNameByExt(ext)
+      const newFileName = [
+        this._projectFileBase,
+        options.config,
+        options.flavor,
+        '-',
+        this._projectVersion,
+        ext,
+      ].join('')
+
+      const newLocation = path.join(this._outputLocation ?? '', newFileName)
 
       if (fs.existsSync(newLocation)) {
         await fsp.unlink(newLocation)
-      }
-
-      const exeLocation = await findSingleFile(`*.${ext}`, this._outputLocation)
-
-      if (!exeLocation) {
-        throw new Error(`Unable to find *.${ext} in the packaged folder`)
       }
 
       await fsp.copyFile(exeLocation, newLocation)
@@ -218,8 +221,12 @@ export default class Build extends Command {
       this.log(`🎉 ${newLocation}`)
     }
 
-    await copyByExt('apk').catch((error) => this.error(error))
-    await copyByExt('aab').catch((error) => this.error(error))
+    await copyByExt(`${this._projectFileBase}-${options.platform}-${options.config}*.apk`).catch((error) =>
+      this.error(error),
+    )
+    await copyByExt(`${this._projectFileBase}-${options.platform}-${options.config}*.aab`).catch((error) =>
+      this.error(error),
+    )
   }
 
   public async parseDefines(defines: string[]): Promise<DefineDict> {
@@ -245,6 +252,8 @@ export default class Build extends Command {
     }
 
     this._projectLocation = path.dirname(this._projectFile)
+
+    this._projectFileBase = path.basename(this._projectFile, '.uproject')
 
     this._outputLocation = path.join(
       this._projectLocation,
