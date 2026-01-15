@@ -32,8 +32,7 @@ interface BuildCookRunOptions {
 interface CopyArtifactOptions {
   config: string
   flavor?: string
-  platform: string
-  verbose: boolean
+  expose?: string
 }
 export default class Build extends Command {
   static override args = {
@@ -59,6 +58,7 @@ export default class Build extends Command {
   static override flags = {
     cwd: Flags.string(),
     output: Flags.string({default: '.'}),
+    expose: Flags.string(),
     verbose: Flags.boolean(),
     copy: Flags.boolean({default: true, allowNo: true}),
     define: Flags.string({
@@ -225,7 +225,8 @@ export default class Build extends Command {
         ext,
       ].join('')
 
-      const newLocation = path.join(this._outputLocation ?? '', newFileName)
+      const newLocationDir = options.expose ?? this._outputLocation ?? ''
+      const newLocation = path.join(newLocationDir, newFileName)
 
       if (fs.existsSync(newLocation)) {
         await fsp.unlink(newLocation)
@@ -297,9 +298,8 @@ export default class Build extends Command {
       if (flags.copy) {
         await this.copyArtifact({
           config: args.config,
-          platform: args.platform,
+          expose: flags.expose,
           flavor: flags.flavor,
-          verbose: flags.verbose,
         })
       }
     } catch (error) {
