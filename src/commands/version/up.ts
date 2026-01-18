@@ -7,6 +7,19 @@ import * as WinAttr from 'winattr'
 
 import {findSingleFile} from '../../utils/find-single-file.js'
 
+interface VersionChange {
+  field: string
+  oldValue: string
+  newValue: string
+  filePath: string
+}
+
+interface VersionChanges {
+  projectVersion?: VersionChange
+  androidVersionDisplayName?: VersionChange
+  androidStoreVersion?: VersionChange
+}
+
 export default class VersionUp extends Command {
   static args = {
     type: Args.string({
@@ -20,12 +33,15 @@ export default class VersionUp extends Command {
 
   static flags = {
     android: Flags.boolean(),
+    json: Flags.boolean({description: 'Output results in JSON format'}),
   }
 
   async run(): Promise<void> {
     const {args, flags} = await this.parse(VersionUp)
 
-    this.log(`Current working directory: ${process.cwd()}`)
+    if (!flags.json) {
+      this.log(`Current working directory: ${process.cwd()}`)
+    }
 
     const releaseType = args.type as ReleaseType
 
@@ -35,20 +51,28 @@ export default class VersionUp extends Command {
       this.error('Unable to find a unreal project in the current directory')
     }
 
-    this.log(`Detected unreal project: ${projectName}`)
+    if (!flags.json) {
+      this.log(`Detected unreal project: ${projectName}`)
+    }
 
-    await this.updateProjectVersion(releaseType)
+    const changes: VersionChanges = {}
+
+    changes.projectVersion = await this.updateProjectVersion(releaseType)
 
     if (flags.android) {
-      await this.updateAndroidBuild(releaseType)
+      const androidChanges = await this.updateAndroidBuild(releaseType)
+      changes.androidVersionDisplayName = androidChanges.androidVersionDisplayName
+      changes.androidStoreVersion = androidChanges.androidStoreVersion
     }
+
+    this.outputResults(changes, flags.json)
   }
 
-  async updateAndroidBuild(releaseType: ReleaseType) {
+  async updateAndroidBuild(releaseType: ReleaseType): Promise<{androidVersionDisplayName: VersionChange; androidStoreVersion: VersionChange}> {
     const defaultEnginePath = await findSingleFile('./Config/DefaultEngine.ini')
 
     if (!defaultEnginePath) {
-      this.error('DefaultGame.ini not found!')
+      this.error('DefaultEngine.ini not found!')
     }
 
     WinAttr.setSync(defaultEnginePath, {readonly: false})
@@ -67,8 +91,6 @@ export default class VersionUp extends Command {
 
     parser.set('/Script/AndroidRuntimeSettings.AndroidRuntimeSettings', 'VersionDisplayName', newVersion)
 
-    this.log(`Android VersionDisplayName: ${projectVersion} -> ${newVersion}`)
-
     const storeVersion = Number.parseInt(
       parser.get('/Script/AndroidRuntimeSettings.AndroidRuntimeSettings', 'StoreVersion'),
       10,
@@ -78,12 +100,25 @@ export default class VersionUp extends Command {
 
     parser.set('/Script/AndroidRuntimeSettings.AndroidRuntimeSettings', 'StoreVersion', newStoreVersion.toString())
 
-    this.log(`Android StoreVersion: ${storeVersion} -> ${newStoreVersion}`)
-
     await writeFile(defaultEnginePath, parser.stringify())
+
+    return {
+      androidVersionDisplayName: {
+        field: 'Android VersionDisplayName',
+        oldValue: projectVersion,
+        newValue: newVersion,
+        filePath: defaultEnginePath,
+      },
+      androidStoreVersion: {
+        field: 'Android StoreVersion',
+        oldValue: storeVersion.toString(),
+        newValue: newStoreVersion.toString(),
+        filePath: defaultEnginePath,
+      },
+    }
   }
 
-  async updateProjectVersion(releaseType: ReleaseType) {
+  async updateProjectVersion(releaseType: ReleaseType): Promise<VersionChange> {
     const defaultGamePath = await findSingleFile('./Config/DefaultGame.ini')
 
     if (!defaultGamePath) {
@@ -106,6 +141,32 @@ export default class VersionUp extends Command {
 
     await writeFile(defaultGamePath, parser.stringify())
 
-    this.log(`ProjectVersion: ${projectVersion} -> ${newVersion}`)
+    return {
+      field: 'ProjectVersion',
+      oldValue: projectVersion,
+      newValue: newVersion,
+      filePath: defaultGamePath,
+    }
+  }
+
+  outputResults(changes: VersionChanges, jsonOutput: boolean): void {
+    if (jsonOutput) {
+      this.log(JSON.stringify(changes, null, 2))
+    } else {
+      this.log('\nVersion Changes:')
+      this.log('==================')
+      
+      if (changes.projectVersion) {
+        this.log(`${changes.projectVersion.field}: ${changes.projectVersion.oldValue} -> ${changes.projectVersion.newValue}`)
+      }
+      
+      if (changes.androidVersionDisplayName) {
+        this.log(`${changes.androidVersionDisplayName.field}: ${changes.androidVersionDisplayName.oldValue} -> ${changes.androidVersionDisplayName.newValue}`)
+      }
+      
+      if (changes.androidStoreVersion) {
+        this.log(`${changes.androidStoreVersion.field}: ${changes.androidStoreVersion.oldValue} -> ${changes.androidStoreVersion.newValue}`)
+      }
+    }
   }
 }
