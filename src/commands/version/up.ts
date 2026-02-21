@@ -18,6 +18,8 @@ interface VersionChanges {
   projectVersion?: VersionChange
   androidVersionDisplayName?: VersionChange
   androidStoreVersion?: VersionChange
+  iosVersionInfo?: VersionChange
+  iosBundleVersion?: VersionChange
 }
 
 export default class VersionUp extends Command {
@@ -33,6 +35,7 @@ export default class VersionUp extends Command {
 
   static flags = {
     android: Flags.boolean(),
+    ios: Flags.boolean(),
     json: Flags.boolean({description: 'Output results in JSON format'}),
   }
 
@@ -63,6 +66,12 @@ export default class VersionUp extends Command {
       const androidChanges = await this.updateAndroidBuild(releaseType)
       changes.androidVersionDisplayName = androidChanges.androidVersionDisplayName
       changes.androidStoreVersion = androidChanges.androidStoreVersion
+    }
+
+    if (flags.ios) {
+      const iosChanges = await this.updateIosBuild(releaseType)
+      changes.iosVersionInfo = iosChanges.iosVersionInfo
+      changes.iosBundleVersion = iosChanges.iosBundleVersion
     }
 
     this.outputResults(changes, flags.json)
@@ -149,6 +158,56 @@ export default class VersionUp extends Command {
     }
   }
 
+  async updateIosBuild(releaseType: ReleaseType): Promise<{iosVersionInfo: VersionChange; iosBundleVersion: VersionChange}> {
+    const defaultEnginePath = await findSingleFile('./Config/DefaultEngine.ini')
+
+    if (!defaultEnginePath) {
+      this.error('DefaultEngine.ini not found!')
+    }
+
+    WinAttr.setSync(defaultEnginePath, {readonly: false})
+
+    const parser = new ConfigIniParser()
+
+    parser.parse(await readFile(defaultEnginePath, {encoding: 'utf8'}))
+
+    const projectVersion = parser.get('/Script/IOSRuntimeSettings.IOSRuntimeSettings', 'VersionInfo')
+
+    const newVersion = incSemver(projectVersion, releaseType)
+
+    if (!newVersion) {
+      this.error('Cannot increment version!')
+    }
+
+    parser.set('/Script/IOSRuntimeSettings.IOSRuntimeSettings', 'VersionInfo', newVersion)
+
+    const bundleVersion = Number.parseInt(
+      parser.get('/Script/IOSRuntimeSettings.IOSRuntimeSettings', 'BundleVersion'),
+      10,
+    )
+
+    const newBundleVersion = bundleVersion + 1
+
+    parser.set('/Script/IOSRuntimeSettings.IOSRuntimeSettings', 'BundleVersion', newBundleVersion.toString())
+
+    await writeFile(defaultEnginePath, parser.stringify())
+
+    return {
+      iosVersionInfo: {
+        field: 'iOS VersionInfo',
+        oldValue: projectVersion,
+        newValue: newVersion,
+        filePath: defaultEnginePath,
+      },
+      iosBundleVersion: {
+        field: 'iOS BundleVersion',
+        oldValue: bundleVersion.toString(),
+        newValue: newBundleVersion.toString(),
+        filePath: defaultEnginePath,
+      },
+    }
+  }
+
   outputResults(changes: VersionChanges, jsonOutput: boolean): void {
     if (jsonOutput) {
       this.log(JSON.stringify(changes, null, 2))
@@ -166,6 +225,14 @@ export default class VersionUp extends Command {
       
       if (changes.androidStoreVersion) {
         this.log(`${changes.androidStoreVersion.field}: ${changes.androidStoreVersion.oldValue} -> ${changes.androidStoreVersion.newValue}`)
+      }
+
+      if (changes.iosVersionInfo) {
+        this.log(`${changes.iosVersionInfo.field}: ${changes.iosVersionInfo.oldValue} -> ${changes.iosVersionInfo.newValue}`)
+      }
+      
+      if (changes.iosBundleVersion) {
+        this.log(`${changes.iosBundleVersion.field}: ${changes.iosBundleVersion.oldValue} -> ${changes.iosBundleVersion.newValue}`)
       }
     }
   }
