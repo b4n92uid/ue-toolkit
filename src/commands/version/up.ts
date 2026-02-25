@@ -19,7 +19,7 @@ interface VersionChanges {
   androidVersionDisplayName?: VersionChange
   androidStoreVersion?: VersionChange
   iosVersionInfo?: VersionChange
-  iosBundleVersion?: VersionChange
+  // iosBundleVersion?: VersionChange
 }
 
 export default class VersionUp extends Command {
@@ -71,13 +71,15 @@ export default class VersionUp extends Command {
     if (flags.ios) {
       const iosChanges = await this.updateIosBuild(releaseType)
       changes.iosVersionInfo = iosChanges.iosVersionInfo
-      changes.iosBundleVersion = iosChanges.iosBundleVersion
+      // changes.iosBundleVersion = iosChanges.iosBundleVersion
     }
 
     this.outputResults(changes, flags.json)
   }
 
-  async updateAndroidBuild(releaseType: ReleaseType): Promise<{androidVersionDisplayName: VersionChange; androidStoreVersion: VersionChange}> {
+  async updateAndroidBuild(
+    releaseType: ReleaseType,
+  ): Promise<{androidVersionDisplayName: VersionChange; androidStoreVersion: VersionChange}> {
     const defaultEnginePath = await findSingleFile('./Config/DefaultEngine.ini')
 
     if (!defaultEnginePath) {
@@ -158,7 +160,7 @@ export default class VersionUp extends Command {
     }
   }
 
-  async updateIosBuild(releaseType: ReleaseType): Promise<{iosVersionInfo: VersionChange; iosBundleVersion: VersionChange}> {
+  async updateIosBuild(releaseType: ReleaseType): Promise<{iosVersionInfo: VersionChange}> {
     const defaultEnginePath = await findSingleFile('./Config/DefaultEngine.ini')
 
     if (!defaultEnginePath) {
@@ -181,14 +183,15 @@ export default class VersionUp extends Command {
 
     parser.set('/Script/IOSRuntimeSettings.IOSRuntimeSettings', 'VersionInfo', newVersion)
 
-    const bundleVersion = Number.parseInt(
-      parser.get('/Script/IOSRuntimeSettings.IOSRuntimeSettings', 'BundleVersion'),
-      10,
-    )
+    // NOTE: BundleVersion is not used in modern xcode development
+    // const bundleVersion = Number.parseInt(
+    //   parser.get('/Script/IOSRuntimeSettings.IOSRuntimeSettings', 'BundleVersion'),
+    //   10,
+    // )
 
-    const newBundleVersion = bundleVersion + 1
+    // const newBundleVersion = bundleVersion + 1
 
-    parser.set('/Script/IOSRuntimeSettings.IOSRuntimeSettings', 'BundleVersion', newBundleVersion.toString())
+    // parser.set('/Script/IOSRuntimeSettings.IOSRuntimeSettings', 'BundleVersion', newBundleVersion.toString())
 
     await writeFile(defaultEnginePath, parser.stringify())
 
@@ -199,12 +202,12 @@ export default class VersionUp extends Command {
         newValue: newVersion,
         filePath: defaultEnginePath,
       },
-      iosBundleVersion: {
-        field: 'iOS BundleVersion',
-        oldValue: bundleVersion.toString(),
-        newValue: newBundleVersion.toString(),
-        filePath: defaultEnginePath,
-      },
+      // iosBundleVersion: {
+      //   field: 'iOS BundleVersion',
+      //   oldValue: bundleVersion.toString(),
+      //   newValue: newBundleVersion.toString(),
+      //   filePath: defaultEnginePath,
+      // },
     }
   }
 
@@ -214,26 +217,34 @@ export default class VersionUp extends Command {
     } else {
       this.log('\nVersion Changes:')
       this.log('==================')
-      
+
       if (changes.projectVersion) {
-        this.log(`${changes.projectVersion.field}: ${changes.projectVersion.oldValue} -> ${changes.projectVersion.newValue}`)
+        this.log(
+          `${changes.projectVersion.field}: ${changes.projectVersion.oldValue} -> ${changes.projectVersion.newValue}`,
+        )
       }
-      
+
       if (changes.androidVersionDisplayName) {
-        this.log(`${changes.androidVersionDisplayName.field}: ${changes.androidVersionDisplayName.oldValue} -> ${changes.androidVersionDisplayName.newValue}`)
+        this.log(
+          `${changes.androidVersionDisplayName.field}: ${changes.androidVersionDisplayName.oldValue} -> ${changes.androidVersionDisplayName.newValue}`,
+        )
       }
-      
+
       if (changes.androidStoreVersion) {
-        this.log(`${changes.androidStoreVersion.field}: ${changes.androidStoreVersion.oldValue} -> ${changes.androidStoreVersion.newValue}`)
+        this.log(
+          `${changes.androidStoreVersion.field}: ${changes.androidStoreVersion.oldValue} -> ${changes.androidStoreVersion.newValue}`,
+        )
       }
 
       if (changes.iosVersionInfo) {
-        this.log(`${changes.iosVersionInfo.field}: ${changes.iosVersionInfo.oldValue} -> ${changes.iosVersionInfo.newValue}`)
+        this.log(
+          `${changes.iosVersionInfo.field}: ${changes.iosVersionInfo.oldValue} -> ${changes.iosVersionInfo.newValue}`,
+        )
       }
-      
-      if (changes.iosBundleVersion) {
-        this.log(`${changes.iosBundleVersion.field}: ${changes.iosBundleVersion.oldValue} -> ${changes.iosBundleVersion.newValue}`)
-      }
+
+      // if (changes.iosBundleVersion) {
+      //   this.log(`${changes.iosBundleVersion.field}: ${changes.iosBundleVersion.oldValue} -> ${changes.iosBundleVersion.newValue}`)
+      // }
     }
   }
 }
