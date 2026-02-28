@@ -87,24 +87,24 @@ export default class Build extends Command {
 
     let params = [`-Project=${this._projectFile}`]
 
-    if (options.flavor && options.flavor !== 'Prod') {
-      this.log(`🏷️  Applying flavor config: ${options.flavor}`)
-      params = [
-        ...params,
-        formatConfigOverride({
-          file: 'Engine',
-          section: '/Script/AndroidRuntimeSettings.AndroidRuntimeSettings',
-          key: 'PackageName',
-          value: `${this._packageName}.${lowerCase(options.flavor)}`,
-        }),
-        formatConfigOverride({
-          file: 'Engine',
-          section: '/Script/AndroidRuntimeSettings.AndroidRuntimeSettings',
-          key: 'ApplicationDisplayName',
-          value: escapeToUnicode(`${this._projectName} [${options.flavor}]`),
-        }),
-      ]
-    }
+    // if (options.flavor && options.flavor !== 'Prod') {
+    //   this.log(`🏷️  Applying flavor config: ${options.flavor}`)
+    //   params = [
+    //     ...params,
+    //     formatConfigOverride({
+    //       file: 'Engine',
+    //       section: '/Script/AndroidRuntimeSettings.AndroidRuntimeSettings',
+    //       key: 'PackageName',
+    //       value: `${this._packageName}.${lowerCase(options.flavor)}`,
+    //     }),
+    //     formatConfigOverride({
+    //       file: 'Engine',
+    //       section: '/Script/AndroidRuntimeSettings.AndroidRuntimeSettings',
+    //       key: 'ApplicationDisplayName',
+    //       value: escapeToUnicode(`${this._projectName} [${options.flavor}]`),
+    //     }),
+    //   ]
+    // }
 
     params = [
       ...params,
@@ -145,10 +145,14 @@ export default class Build extends Command {
     const uatPath = path.join(engineLocation, 'Engine', 'Build', 'BatchFiles', 'RunUAT.bat')
 
     return new Promise((resolve, reject) => {
+      const env = {...process.env, ...defines}
+
+      this.log(`⚙️ Environment variables: ${JSON.stringify(env)}`)
+
       const uatProc = spawn(uatPath, ['BuildCookRun', ...params], {
         stdio: verbose ? 'inherit' : 'pipe',
         shell: true,
-        env: {...process.env, ...defines},
+        env,
       })
 
       uatProc.stdout?.on('data', (data: Buffer) => {
